@@ -72,16 +72,4 @@ public class DropdownController {
         String fleetno=queryparams.get("fleetno");
         return service.getInspRefDoc(type,reftype,brhid,fleetno);
     }
-    
-    @GetMapping("/getTaskType")
-    @ResponseBody
-    public List<DropdownModel> getTaskType(){
-        return listrepo.getTaskType();
-    }
-    
-    @GetMapping("/getUser")
-    @ResponseBody
-    public List<DropdownModel> getUser(){
-        return listrepo.getUser();
-    }
 }

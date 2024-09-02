@@ -257,6 +257,7 @@ public class DriverTasksService {
                     objtemp.setRepstage(rs.getString("repstage"));
                     objtemp.setVoctype(rs.getString("voctype"));
                     objtemp.setVocno(rs.getString("vocno"));
+                    objtemp.setRjobtype(rs.getString("jobtype"));
                     return objtemp;
                 }
             });

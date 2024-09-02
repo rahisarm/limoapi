@@ -2,6 +2,8 @@ package com.gateway.limoapi.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -55,7 +57,7 @@ public class LimoDriverTasksController {
 	    @GetMapping("/getStartTripData")
 	    @ResponseBody
 	    public List<LimoDataModel> getMovExistData(@RequestParam Map<String,String> queryparams){
-	        return service.getLimoMovExistData(queryparams.get("rdocno"),queryparams.get("driverdocno"));
+	        return service.getLimoMovExistData(queryparams.get("rdocno"),queryparams.get("driverdocno"),queryparams.get("rjobtype"));
 	    }
 	    
 	    @GetMapping("/getjobs")
@@ -104,4 +106,18 @@ public class LimoDriverTasksController {
 	        String movstage="1";
 	        return limodriverTasksService.getEndFleetMinData(fleetno,movstage);
 	    }
+	    
+	    @GetMapping("/getJobStatus")
+	    @ResponseBody
+	    public List<LimoDataModel> getStatus(){
+	    	System.out.println("Entered into Status");
+	        return limodriverTasksService.getStatus().stream().filter(e->!e.getJobstatus().equalsIgnoreCase("Change in Time")).collect(Collectors.toList());
+	    }
+	    
+	    @PostMapping("/setJobStatus")
+	    @ResponseBody
+	    public boolean setStatus(@RequestParam Map<String,String> queryparams) {
+	    	return limodriverTasksService.setStatus(queryparams);
+	    }
+	    
 }

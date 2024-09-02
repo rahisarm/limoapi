@@ -23,6 +23,7 @@ public class DriverTasks implements Serializable {
     private String tripstartdate;
     private String tripstarttime;
     private String voctype,vocno;
+    private String rjobtype;
 
     
     public String getVoctype() {
@@ -211,4 +212,12 @@ public class DriverTasks implements Serializable {
                 ", repstage='" + repstage + '\'' +
                 '}';
     }
+
+	public String getRjobtype() {
+		return rjobtype;
+	}
+
+	public void setRjobtype(String rjobtype) {
+		this.rjobtype = rjobtype;
+	}
 }

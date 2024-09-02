@@ -58,7 +58,7 @@ public class LImoDriverTasksService {
     private ClsCommon objcommon;
     
     public List<LimoDataModel> getJobs(String driverdocno){
-    	String sql = "SELECT CONCAT(m.docno,'-',m.job) docno,COALESCE(CONCAT(m.guest,' - ',m.client,' - ',m.fno,' - ',m.brand,' ',model,' - ',m.job,'-',m.docno),'') jobno  FROM gl_limomanagement m LEFT JOIN gl_multivehassign gvm ON m.docno=gvm.bookingno AND m.job=gvm.jobname AND gvm.drvid="+driverdocno+"  LEFT JOIN `my_salesman` s ON s.srno=gvm.drvid WHERE m.bstatus>=2 and m.bstatus<7 and gvm.bookingstatus<=1 AND gvm.drvid="+driverdocno;
+    	String sql = "SELECT CONCAT(m.docno,'-',m.job) docno,COALESCE(CONCAT(m.guest,' - ',m.client,' - ',m.fno,' - ',m.brand,' ',model,' - ',m.job,'-',m.docno),'') jobno  FROM gl_limomanagement m LEFT JOIN gl_multivehassign gvm ON m.docno=gvm.bookingno AND m.job=gvm.jobname AND gvm.drvid="+driverdocno+"  LEFT JOIN `my_salesman` s ON s.srno=gvm.drvid WHERE m.bstatus>=2 and m.bstatus<7 and gvm.bookingstatus<=6 AND gvm.drvid="+driverdocno;
     	System.out.println(sql);
     	return template.query(sql, new RowMapper<LimoDataModel>() {
              @Override
@@ -81,7 +81,7 @@ public class LImoDriverTasksService {
 
             if (dbType.trim().equalsIgnoreCase("MySQL")){
             	strsql="SELECT base.*,COALESCE(IF(trp.tripstatus=1,DATE_FORMAT(trp.startdate,'%d.%m.%Y'),''),'') tripstartdate,COALESCE(IF(trp.tripstatus=1,trp.starttime,''),'') tripstarttime,COALESCE(IF(trp.tripstatus<2,trp.tripstatus,0),0) tripstatus FROM ("
-            			+ " SELECT CASE WHEN nrm.movtype='TR' THEN 'Transfer Branch Close'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.delivery=0 THEN 'Garage Delivery'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.delivery=1 AND nrm.collection=0 THEN 'Garage Collection'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.collection=1 THEN 'Garage Branch Close' ELSE '' END tripmode,nrm.doc_no,'MOV' rdtype,veh.fleet_no,veh.reg_no,plate.code_name,veh.flname,'Movement' refname,nrm.drid,0 repno FROM gl_nrm nrm  LEFT JOIN gl_vehmaster veh ON nrm.fleet_no=veh.fleet_no  LEFT JOIN gl_vehplate plate ON veh.pltid=plate.doc_no WHERE nrm.status=3 AND nrm.clstatus=0 UNION ALL SELECT 'Collection' AS tripmode,p.agmtno AS doc_no,p.agmttype AS rdtype,v.fleet_no,v.reg_no,plate.code_name,v.flname,ac.refname,"
+            			+ " SELECT ''jobname,CASE WHEN nrm.movtype='TR' THEN 'Transfer Branch Close'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.delivery=0 THEN 'Garage Delivery'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.delivery=1 AND nrm.collection=0 THEN 'Garage Collection'  WHEN nrm.movtype IN ('GS','GM','GA') AND nrm.collection=1 THEN 'Garage Branch Close' ELSE '' END tripmode,nrm.doc_no,'MOV' rdtype,veh.fleet_no,veh.reg_no,plate.code_name,veh.flname,'Movement' refname,nrm.drid,0 repno FROM gl_nrm nrm  LEFT JOIN gl_vehmaster veh ON nrm.fleet_no=veh.fleet_no  LEFT JOIN gl_vehplate plate ON veh.pltid=plate.doc_no WHERE nrm.status=3 AND nrm.clstatus=0 UNION ALL SELECT '' jobname,'Collection' AS tripmode,p.agmtno AS doc_no,p.agmttype AS rdtype,v.fleet_no,v.reg_no,plate.code_name,v.flname,ac.refname,"
             			+ "  "+driverdocno+" AS drid,p.doc_no AS repno FROM gl_vehpickup p "
             			+ "  LEFT JOIN my_acbook ac ON (p.cldocno = ac.cldocno AND ac.dtype = 'CRM') "
             			+ "  LEFT JOIN gl_vehmaster v ON p.fleet_no = v.fleet_no "
@@ -90,7 +90,7 @@ public class LImoDriverTasksService {
             			+ "  LEFT JOIN gl_lagmt l ON p.agmtno = l.doc_no AND p.agmttype = 'LAG' "
             			+ "  LEFT JOIN an_acollection acol ON p.doc_no=acol.pkupno "
             			+ "  WHERE p.status=3 and CASE WHEN p.agmttype = 'RAG' THEN r.clstatus ELSE l.clstatus END = 0 AND (acol.doc_no IS NULL OR acol.bindate IS NULL) UNION ALL"
-            			+ " SELECT 'Job Assigned' tripmode, bm.docno doc_no, 'JOB' rdtype,veh.fleet_no,veh.reg_no,plt.code_name,veh.flname,ac.refname,gvm.drvid drid,'' repno FROM gl_limomanagement bm left join gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname and gvm.drvid="+driverdocno+" LEFT JOIN gl_vehmaster veh ON (gvm.fleetno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no  INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN my_acbook ac ON (bm.clientid=ac.cldocno AND ac.dtype='CRM')  WHERE gvm.drvid="+driverdocno+"  AND bm.bstatus>=2 and bm.bstatus<=6 and gvm.bookingstatus<=1"
+            			+ " SELECT gvm.jobname jobname,CASE WHEN gvm.bookingstatus=3 THEN 'Job Accepted' WHEN gvm.bookingstatus=5 THEN 'Waiting For Guest'  WHEN gvm.bookingstatus=6 THEN 'Trip Started' ELSE 'Job Assigned' END AS tripmode, bm.docno doc_no, 'JOB' rdtype,veh.fleet_no,veh.reg_no,plt.code_name,veh.flname,ac.refname,gvm.drvid drid,'' repno FROM gl_limomanagement bm left join gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname and gvm.drvid="+driverdocno+" LEFT JOIN gl_vehmaster veh ON (gvm.fleetno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no  INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN my_acbook ac ON (bm.clientid=ac.cldocno AND ac.dtype='CRM')  WHERE gvm.drvid="+driverdocno+"  AND bm.bstatus>=2 and bm.bstatus<=6 and gvm.bookingstatus<=6"
             			+ ") base LEFT JOIN (SELECT MAX(doc_no) maxdocno,rdocno,rdtype,driverid FROM gl_drtrip GROUP BY rdocno,rdtype,driverid) maxtrp ON   base.doc_no=maxtrp.rdocno AND base.rdtype=maxtrp.rdtype AND base.drid=maxtrp.driverid   LEFT JOIN gl_drtrip trp ON maxtrp.maxdocno=trp.doc_no WHERE 1=1 "+sqlfilters;
             }
             System.out.println("SQL:"+strsql);
@@ -109,6 +109,7 @@ public class LImoDriverTasksService {
                     objtemp.setTripmode(rs.getString("tripmode"));
                     objtemp.setRepno(rs.getString("repno"));
                     objtemp.setFleetno(rs.getString("fleet_no"));
+                    objtemp.setRjobtype(rs.getString("jobname"));
                     return objtemp;
                 }
             });
@@ -126,6 +127,7 @@ public class LImoDriverTasksService {
             String fleetno=queryparams.get("fleetno");
             java.sql.Date sqldate=objcommon.changeStringtoSqlDate(queryparams.get("date"));
             String bookingno=queryparams.get("bookingno");
+            String rjobtype=queryparams.get("rjobtype");
             String time=queryparams.get("time");
             String km=queryparams.get("km");
             String brhid=queryparams.get("brhid");
@@ -134,7 +136,7 @@ public class LImoDriverTasksService {
             String drvdocno=queryparams.get("drvdocno");
             String remarks=queryparams.get("remarks");
             
-            String starttripdetails = "SELECT veh.reg_no,veh.fleet_no,veh.flname vehname,COALESCE(sm.sal_name,'') drivername,bm.plocation pickuplocation, bm.dlocation dropofflocation, bm.job, bm.type, COALESCE(bm.tdocno,0) tdocno,bm.tarifdocno,bm.tarifdetaildocno, COALESCE(bm.docno,0) bookingno,COALESCE(CONCAT(bm.docno,'-',bm.job),'') jobno, bm.bstatus jobstatus FROM gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname AND gvm.drvid="+drvdocno+" LEFT JOIN my_salesman sm ON sm.doc_no=gvm.drvid LEFT JOIN gl_limostatusdet st ON st.doc_no=bm.bstatus LEFT JOIN gl_vehmaster veh ON (gvm.fleetno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no LEFT JOIN my_user usr ON bm.bookuserid=usr.doc_no WHERE bm.confirm=0 AND bm.docno="+bookingno;
+            String starttripdetails = "SELECT veh.reg_no,veh.fleet_no,veh.flname vehname,COALESCE(sm.sal_name,'') drivername,bm.plocation pickuplocation, bm.dlocation dropofflocation, bm.job, bm.type, COALESCE(bm.tdocno,0) tdocno,bm.tarifdocno,bm.tarifdetaildocno, COALESCE(bm.docno,0) bookingno,COALESCE(CONCAT(bm.docno,'-',bm.job),'') jobno, bm.bstatus jobstatus FROM gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname AND gvm.drvid="+drvdocno+" LEFT JOIN my_salesman sm ON sm.doc_no=gvm.drvid LEFT JOIN gl_limostatusdet st ON st.doc_no=bm.bstatus LEFT JOIN gl_vehmaster veh ON (gvm.fleetno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no LEFT JOIN my_user usr ON bm.bookuserid=usr.doc_no WHERE bm.confirm=0 and bm.job='"+rjobtype+"' AND bm.docno="+bookingno;
             List<Map<String, Object>> result = template.queryForList(starttripdetails);
             System.out.println(result.get(0).get("drivername"));
             
@@ -154,7 +156,7 @@ public class LImoDriverTasksService {
             }
             }
             
-            String sqlupdatemulti="update gl_multivehassign set bookingstatus=1 where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' and drvid="+drvdocno;
+            String sqlupdatemulti="update gl_multivehassign set bookingstatus=6 where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' and drvid="+drvdocno;
             int isUpdated=template.update(sqlupdatemulti);
             if(!(isUpdated>=1)) {
             	throw new CommonException("Updation in gl_ Error");
@@ -212,6 +214,7 @@ public class LImoDriverTasksService {
              String fleetno=queryparams.get("fleetno");
              java.sql.Date sqldate=objcommon.changeStringtoSqlDate(queryparams.get("date"));
              String bookingno=queryparams.get("bookingno");
+             String rjobtype=queryparams.get("rjobtype");
              String time=queryparams.get("time");
              String km=queryparams.get("km");
              String brhid=queryparams.get("brhid");
@@ -219,7 +222,7 @@ public class LImoDriverTasksService {
              String drvdocno=queryparams.get("drvdocno");
              String remarks=queryparams.get("remarks");
              
-             String starttripdetails = "SELECT veh.reg_no,veh.fleet_no,veh.flname vehname,COALESCE(bm.drivername,'') drivername,bm.plocation pickuplocation, bm.dlocation dropofflocation, bm.job, bm.type, COALESCE(bm.tdocno,0) tdocno,bm.tarifdocno,bm.tarifdetaildocno, COALESCE(bm.docno,0) bookingno,COALESCE(CONCAT(bm.docno,'-',bm.job),'') jobno FROM gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_limostatusdet st ON st.doc_no=bm.bstatus LEFT JOIN gl_vehmaster veh ON (bm.fno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no LEFT JOIN my_user usr ON bm.bookuserid=usr.doc_no LEFT JOIN gl_jobassign gj ON gj.bookdocno=bm.docno  WHERE bm.confirm=0 AND bm.docno="+bookingno;
+             String starttripdetails = "SELECT veh.reg_no,veh.fleet_no,veh.flname vehname,COALESCE(bm.drivername,'') drivername,bm.plocation pickuplocation, bm.dlocation dropofflocation, bm.job, bm.type, COALESCE(bm.tdocno,0) tdocno,bm.tarifdocno,bm.tarifdetaildocno, COALESCE(bm.docno,0) bookingno,COALESCE(CONCAT(bm.docno,'-',bm.job),'') jobno FROM gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_limostatusdet st ON st.doc_no=bm.bstatus LEFT JOIN gl_vehmaster veh ON (bm.fno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no LEFT JOIN my_user usr ON bm.bookuserid=usr.doc_no LEFT JOIN gl_jobassign gj ON gj.bookdocno=bm.docno  WHERE bm.confirm=0 AND bm.job='"+rjobtype+"' and bm.docno="+bookingno;
              System.out.println(starttripdetails);
              List<Map<String, Object>> result = template.queryForList(starttripdetails);
              System.out.println(result.get(0).get("drivername"));
@@ -280,7 +283,9 @@ public class LImoDriverTasksService {
 							if (simplejdbcresult.get("srno") != null
 									&& !simplejdbcresult.get("srno").toString().equalsIgnoreCase("undefined")
 									&& Integer.parseInt(simplejdbcresult.get("srno").toString()) > 0) {
-
+								String sqlUp = "update my_fileattach set jobname='"+result.get(0).get("job")+"' where doc_no="+bookingno+" and brhid="+brhid+" and sr_no="+simplejdbcresult.get("srno").toString()+"AND filename='"+filename+"'";
+								int ress = template.update(sqlUp);
+								if(ress<=0) throw new CommonException("Error in Files attach");
 							} else {
 								throw new CommonException("Procedure Error");
 							}
@@ -327,10 +332,10 @@ public class LImoDriverTasksService {
 						if (simplejdbcresult.get("srno") != null
 								&& !simplejdbcresult.get("srno").toString().equalsIgnoreCase("undefined")
 								&& Integer.parseInt(simplejdbcresult.get("srno").toString()) > 0) {
-							String updateStatus = "update my_fileattach SET STATUS=7 WHERE sr_no="+simplejdbcresult.get("srno").toString()+" AND doc_no="+bookingno+" AND filename='"+filename+"'";
+							String updateStatus = "update my_fileattach SET STATUS=7,jobname='"+result.get(0).get("job")+"' WHERE sr_no="+simplejdbcresult.get("srno").toString()+" AND doc_no="+bookingno+" AND filename='"+filename+"'";
 							boolean ustatus = template.update(updateStatus)>=1?false:true;
 							 if(ustatus) throw new CommonException("updateStatus Error");
-							 String sqlupdatemulti="update gl_multivehassign set bookingstatus=2,signpath='"+String.valueOf(path)+"' where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' and drvid="+drvdocno;
+							 String sqlupdatemulti="update gl_multivehassign set bookingstatus=7,signpath='"+String.valueOf(path)+"' where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' and drvid="+drvdocno;
 						     int isUpdated=template.update(sqlupdatemulti);
 						     if(!(isUpdated>=1)) {
 						    	 throw new CommonException("Updation in gl_multivehassign Error");
@@ -344,12 +349,25 @@ public class LImoDriverTasksService {
 				});
 			 
 		     int endCheck=0;
-		     String checkAllTripsCompleted = "SELECT (COUNT(*)-(SELECT COUNT(*) COUNT FROM gl_multivehassign WHERE  bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' AND bookingstatus=2)) ended FROM gl_multivehassign where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"'";
+		     String checkAllTripsCompleted = "SELECT (COUNT(*)-(SELECT COUNT(*) COUNT FROM gl_multivehassign WHERE  bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' AND bookingstatus>=7)) ended FROM gl_multivehassign where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"'";
 		     System.out.println(checkAllTripsCompleted);
 		     SqlRowSet rscheck = template.queryForRowSet(checkAllTripsCompleted);
              if(rscheck.next()) endCheck = rscheck.getInt("ended");
              
-		     if(endCheck>1) return true;
+		     if(endCheck>=1) {
+		    	 	String usersql = "SELECT user_name user FROM my_user WHERE doc_no="+userid;
+					SqlRowSet usersqlRowSet = template.queryForRowSet(usersql);
+					String username="";
+					if(usersqlRowSet.next()) {
+						username=usersqlRowSet.getString("user");
+					}
+					
+					String systemnote="Ended Trip of " + bookingno + " - "+result.get(0).get("job")+" - "+ sqldate+" - "+time+" - "+km+" - "+result.get(0).get("dropofflocation")+" - by "+username;
+					String sqllog = "INSERT INTO gl_limomgmtlog (bookdocno, jobname, brhid, userid, logdate, remarks, systemremarks) VALUES ('"+bookingno+"','"+result.get(0).get("job")+"','"+brhid+"','"+userid+"', now(), '"+remarks+"','"+systemnote+"')";
+					status = template.update(sqllog)>=1?false:true;
+					if(status) throw new CommonException("Insertion in gl_limomgmtlog failed");
+					return true;
+		     }
 		     
 		     String sqlg = "SELECT gid FROM (SELECT CONCAT(bookdocno,'-',docname) jobname, gid FROM gl_limobookhours UNION ALL SELECT CONCAT(bookdocno,'-',docname) jobname, gid FROM gl_limobooktransfer) a  WHERE a.jobname='"+result.get(0).get("jobno")+"'";
              SqlRowSet rssqlg = template.queryForRowSet(sqlg);
@@ -369,6 +387,7 @@ public class LImoDriverTasksService {
              }
              
              String sqlss="select mincharge,minkmcharge, extrakmrate, excesshrsrate, nightmincharge, nightminkmcharge, nightextrakmrate, nightexcesshrsrate from gl_limotarifm m left join gl_limotariftaxi lt on lt.tarifdocno=m.doc_no where curdate() between validfrom and validto and lt.gid="+grpid+"";
+             System.out.println(sqlss);
              SqlRowSet rssqlss = template.queryForRowSet(sqlss);
              if(rssqlss.next()) {
             	 minkm=rssqlss.getDouble("minkmcharge");
@@ -383,6 +402,7 @@ public class LImoDriverTasksService {
              }
              
              String sqls1="select value from gl_config where field_nme='standardspeed'";
+             System.out.println(sqls1);
              SqlRowSet rssqls1 = template.queryForRowSet(sqls1);
 				while(rssqls1.next()){
 					vals=rssqls1.getDouble("value");
@@ -398,6 +418,7 @@ public class LImoDriverTasksService {
 					 extrahour=0;
 				}
 				String sqls="select description from gl_config where field_nme='nightstarttime'";
+				System.out.println(sqls);
 				SqlRowSet rssqls = template.queryForRowSet(sqls);
 				while(rssqls.next()){
 					timevalue=rssqls.getString("description");
@@ -539,7 +560,17 @@ public class LImoDriverTasksService {
 					maxdoc=rsstrmaxdoc.getInt("maxdoc");
 				}
 				
+				String usersql = "SELECT user_name user FROM my_user WHERE doc_no="+userid;
+				SqlRowSet usersqlRowSet = template.queryForRowSet(usersql);
+				String username="";
+				if(usersqlRowSet.next()) {
+					username=usersqlRowSet.getString("user");
+				}
 				
+				String systemnote="Ended Trip of " + bookingno + " - "+result.get(0).get("job")+" - "+ sqldate+" - "+time+" - "+km+" - "+result.get(0).get("dropofflocation")+" - by "+username;
+				String sqllog = "INSERT INTO gl_limomgmtlog (bookdocno, jobname, brhid, userid, logdate, remarks, systemremarks) VALUES ('"+bookingno+"','"+result.get(0).get("job")+"','"+brhid+"','"+userid+"', now(), '"+remarks+"','"+systemnote+"')";
+				status = template.update(sqllog)>=1?false:true;
+				if(status) throw new CommonException("Insertion in gl_limomgmtlog failed");
 				
 				System.out.println(bookingno);
 				System.out.println(result.get(0).get("tdocno").toString());
@@ -550,7 +581,7 @@ public class LImoDriverTasksService {
 				System.out.println(resultsqlr.get(0).get("startkm").toString());
 				System.out.println(sqldate.toString());
 				
-				CalculateData(bookingno, result.get(0).get("tdocno").toString(), result.get(0).get("job").toString(), result.get(0).get("tarifdocno").toString(), result.get(0).get("tarifdetaildocno").toString(), resultsqlr.get(0).get("startdate").toString(), stime.toString(), resultsqlr.get(0).get("startkm").toString(),queryparams.get("date"), time,km, "0", "0", "0", "0", "0", "0");
+				/*CalculateData(bookingno, result.get(0).get("tdocno").toString(), result.get(0).get("job").toString(), result.get(0).get("tarifdocno").toString(), result.get(0).get("tarifdetaildocno").toString(), resultsqlr.get(0).get("startdate").toString(), stime.toString(), resultsqlr.get(0).get("startkm").toString(),queryparams.get("date"), time,km, "0", "0", "0", "0", "0", "0");
 				
 				SimpleJdbcCall simplejdbc=new SimpleJdbcCall(template);
 		        simplejdbc.withProcedureName("limoJobCloseAppDML");
@@ -573,14 +604,16 @@ public class LImoDriverTasksService {
 		        if(simplejdbcresult.isEmpty()) {
 		        	throw new CommonException("Procedure Error");
 		        }
-		        else {
-		        	//boolean tripReportGeneratePrint = printService.tripReportGeneratePrint(result.get(0).get("job").toString(), bookingno);
-		        	boolean tripReportGeneratePrint=true;
+		        else {*/
+					
+		        	boolean tripReportGeneratePrint = printService.tripReportGeneratePrint(result.get(0).get("job").toString(), bookingno);
+		        	//boolean tripReportGeneratePrint=true;
+		        	System.out.println("Trip Generation - "+tripReportGeneratePrint);
 		        	if(!tripReportGeneratePrint) {
 		        		throw new CommonException("Print/WhatsApp Error");
 		        	}
 		        	return tripReportGeneratePrint;
-		        }
+                 //}
          }
          catch (Exception e){
              e.printStackTrace();
@@ -930,7 +963,9 @@ public class LImoDriverTasksService {
 						if (simplejdbcresult.get("srno") != null
 								&& !simplejdbcresult.get("srno").toString().equalsIgnoreCase("undefined")
 								&& Integer.parseInt(simplejdbcresult.get("srno").toString()) > 0) {
-
+							String sqlUp = "update my_fileattach set jobname='"+job+"' where doc_no="+bookingno+" and brhid="+brhid+" and sr_no="+simplejdbcresult.get("srno").toString()+"AND filename='"+filename+"'";
+							int ress = template.update(sqlUp);
+							if(ress<=0) throw new CommonException("Error in Files attach");
 						} else {
 							errorstatus.set(1);
 							throw new CommonException("Procedure Error");
@@ -1025,6 +1060,98 @@ public class LImoDriverTasksService {
 	            }
 	        });
 	    }
+	 
+	 public List<LimoDataModel> getStatus(){
+		 String sql = "SELECT doc_no srno,NAME PROCESS FROM gl_limostatusdet WHERE STATUS=3 AND manual=1 ORDER BY seqno";
+	   	 	System.out.println("Job Assignment - "+sql);
+			return template.query(sql, new RowMapper<LimoDataModel>() {
+	            @Override
+	            public LimoDataModel mapRow(ResultSet rs, int rowNum) throws SQLException {
+	           	 LimoDataModel objtemp=new LimoDataModel();
+	                objtemp.setJobstatusid(rs.getString("srno"));
+	                objtemp.setJobstatus(rs.getString("PROCESS"));
+	                return objtemp;
+	            }
+	        });
+	 }
+
+	 @Transactional(rollbackOn = {Exception.class, SQLException.class, CommonException.class})
+	public boolean setStatus(Map<String, String> queryparams) {
+	        try{
+	            String fleetno=queryparams.get("fleetno");
+	            java.sql.Date sqldate=objcommon.changeStringtoSqlDate(queryparams.get("date"));
+	            String bookingno=queryparams.get("bookingno");
+	            String brhid=queryparams.get("brhid");
+	            String userid=queryparams.get("userid");
+	            String drvdocno=queryparams.get("drvdocno");
+	            String remarks=queryparams.get("remarks");
+	            String statusid=queryparams.get("jobstatusid");
+	            
+	            String starttripdetails = "SELECT bm.brhid,veh.reg_no,veh.fleet_no,veh.flname vehname,COALESCE(sm.sal_name,'') drivername,bm.plocation pickuplocation, bm.dlocation dropofflocation, bm.job, bm.type, COALESCE(bm.tdocno,0) tdocno,bm.tarifdocno,bm.tarifdetaildocno, COALESCE(bm.docno,0) bookingno,COALESCE(CONCAT(bm.docno,'-',bm.job),'') jobno, bm.bstatus jobstatus FROM gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname AND gvm.drvid="+drvdocno+" LEFT JOIN my_salesman sm ON sm.doc_no=gvm.drvid LEFT JOIN gl_limostatusdet st ON st.doc_no=bm.bstatus LEFT JOIN gl_vehmaster veh ON (gvm.fleetno=veh.fleet_no AND statu=3) LEFT JOIN gl_vehplate plt ON veh.pltid=plt.doc_no LEFT JOIN my_user usr ON bm.bookuserid=usr.doc_no WHERE bm.confirm=0 AND bm.docno="+bookingno;
+	            List<Map<String, Object>> result = template.queryForList(starttripdetails);
+	            System.out.println(result.get(0).get("drivername"));
+	            
+	            String strgetstatus="select name from gl_limostatusdet where doc_no="+statusid;
+				SqlRowSet rsstatus=template.queryForRowSet(strgetstatus);
+				String statusname="";
+				while(rsstatus.next()){
+					statusname=rsstatus.getString("name");
+				}
+				
+				String updatemultivehstatus="UPDATE gl_multivehassign SET bookingstatus="+statusid+" WHERE bookingno="+bookingno+" AND jobname='"+result.get(0).get("job")+"' AND drvid="+drvdocno;
+				int updatemvs = template.update(updatemultivehstatus); 
+				if(updatemvs<=0){
+					throw new CommonException("gl_multivehassign update error");
+				}
+				int endCheck=0;
+				String checkAllTripsCompleted = "SELECT (COUNT(*)-(SELECT COUNT(*) COUNT FROM gl_multivehassign WHERE  bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"' AND bookingstatus>=7)) ended FROM gl_multivehassign where bookingno="+bookingno+" and jobname='"+result.get(0).get("job")+"'";
+			    System.out.println(checkAllTripsCompleted);
+			    SqlRowSet rscheck = template.queryForRowSet(checkAllTripsCompleted);
+	            if(rscheck.next()) endCheck = rscheck.getInt("ended");
+	             
+			    if(endCheck>=1) {
+			    	String usersql = "SELECT user_name user FROM my_user WHERE doc_no="+userid;
+					SqlRowSet usersqlRowSet = template.queryForRowSet(usersql);
+					String username="";
+					if(usersqlRowSet.next()) {
+						username=usersqlRowSet.getString("user");
+					}
+					String systemnote="Status Updation to "+statusname+" of "+bookingno+" - "+result.get(0).get("job")+" by "+username;
+					String strinsertlog="insert into gl_limomgmtlog(bookdocno, jobname, brhid, userid, logdate,remarks, systemremarks)values("+bookingno+",'"+result.get(0).get("job")+"',"+result.get(0).get("brhid")+","+userid+",now(),'"+remarks+"','"+systemnote+"')";
+					int insertlog=template.update(strinsertlog);
+					if(insertlog<=0){
+						throw new CommonException("Error Entering the log"); 
+					} else {
+						return true;
+					}
+			    }
+				
+				String strsql="update gl_limomanagement set bstatus='"+statusid+"',remarks='"+remarks+"' where docno='"+bookingno+"' and job='"+result.get(0).get("job")+"'";	
+			 	int sqlupdate = template.update(strsql);     
+				if(sqlupdate<=0){
+					throw new CommonException("Limomanagement update error");
+				}
+				
+				String usersql = "SELECT user_name user FROM my_user WHERE doc_no="+userid;
+				SqlRowSet usersqlRowSet = template.queryForRowSet(usersql);
+				String username="";
+				if(usersqlRowSet.next()) {
+					username=usersqlRowSet.getString("user");
+				}
+				String systemnote="Status Updation to "+statusname+" of "+bookingno+" - "+result.get(0).get("job")+" by "+username;
+				String strinsertlog="insert into gl_limomgmtlog(bookdocno, jobname, brhid, userid, logdate,remarks, systemremarks)values("+bookingno+",'"+result.get(0).get("job")+"',"+result.get(0).get("brhid")+","+userid+",now(),'"+remarks+"','"+systemnote+"')";
+				int insertlog=template.update(strinsertlog);
+				if(insertlog<=0){
+					throw new CommonException("Error Entering the log"); 
+				} else {
+					return true;
+				}
+	            
+	        } catch (Exception e) {
+	        	e.printStackTrace();
+				throw new CommonException(e.getMessage());
+	        }
+	}
     
 	
 }

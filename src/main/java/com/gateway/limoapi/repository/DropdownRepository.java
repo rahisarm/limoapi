@@ -31,9 +31,4 @@ public interface DropdownRepository extends JpaRepository<DropdownModel, String>
     @Query(value = "select veh.fleet_no docno,concat(veh.reg_no,' ',plt.code_name,' ',veh.flname) refname from gl_vehmaster veh left join gl_vehplate plt on veh.pltid=plt.doc_no where veh.statu=3 and veh.fstatus in ('L','N')",nativeQuery = true)
     List<DropdownModel> getInspFleet();
 
-    @Query(value = "select doc_no docno,reftype refname  from an_tasktype where status=3",nativeQuery = true)
-    List<DropdownModel> getTaskType();
-    
-    @Query(value = "select doc_no docno,user_name refname  from my_user where status=3",nativeQuery = true)
-    List<DropdownModel> getUser();
 }

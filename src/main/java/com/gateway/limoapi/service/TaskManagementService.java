@@ -35,7 +35,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,10 +55,6 @@ public class TaskManagementService {
     @Value("${dbname}")
     private String dbName;
 	
-    @Value("${whatsapp}")
-    private String whatsappconfig;
-	
-    
 	@Autowired
     JdbcTemplate template;
     
@@ -72,80 +67,112 @@ public class TaskManagementService {
     @Autowired
     private RestTemplate restTemplate;
     
-    public int sendMailAndWhatsapp(String hidUser,String userId,int val) {
-    	int update=0;
-    	try {
-        	String host="";
-        	String port="";
-        	String userName="";
-        	String password="";
-        	String recipient="";
-        	String subject="";
-        	String mailmessage="";
-        	String mobile="";
-        	String whatsapptemplate="";
-        	String accesstoken="";
-        	String phoneId="";
-        	String whatsappaccountid="";
-        	String appid="";
-        	String whatsappno="";
-        	String path="";
-        	String mediatype="";
-        	String mediaformat="";
-        	String apiurl="";
-        	String cldocnos="";
-        	String msg="";
-        	String attachdoc="";
-        	String extn="";
-        	String msgtype="Template";
-        	String cldocno="0";
-        	String mob="";
-        	String client="";
-        	String rescode="";
-        	String message="";
-        	
-        	File saveFile = null;
-        	
-        	String sqlstr = "SELECT mail, mailpass, smtpserver, smtphostport FROM my_user WHERE status=3 AND doc_no="+userId;
-        	//commented by Rahis on 26-08-204 'where user_id=super'
-			System.out.println("Line 132 - "+sqlstr);
-        	SqlRowSet rssqlstr = template.queryForRowSet(sqlstr);
-			while(rssqlstr.next()){
-				host = rssqlstr.getString("smtpserver");
-				port = rssqlstr.getString("smtphostport");
-				userName = rssqlstr.getString("mail");
-				password = clsEncrypt.decrypt(rssqlstr.getString("mailpass").trim());  
-			}  
-        	
-			String sqlstr1 = "SELECT email, mobile FROM my_user WHERE doc_no='"+hidUser+"'";	    
-			SqlRowSet rs1 = template.queryForRowSet(sqlstr1);
-			while(rs1.next()){
-				recipient = rs1.getString("email");    
-				mobile = rs1.getString("mobile");        
+    public boolean addTask(String refType, String refNo, String startDate, String startTime, String hidUser, String desc, String userId, String edcDate) {
+    	int val = 0;
+    	int update = 0;
+		try
+		{
+			Date  sqledcdate = null;
+			if(!edcDate.equals("") && edcDate!=null){
+				sqledcdate = objcommon.changeStringtoSqlDate(edcDate);
 			}
 			
-			String mailmsgsql="";
-			String sqlstr2 = "select msg, subject from gl_emailmsg where dtype='TMT' and description='Assigned'";	  
-			SqlRowSet rs2 = template.queryForRowSet(sqlstr2);
-			while(rs2.next()){
-				mailmsgsql = rs2.getString("msg").replaceAll("document", val+"");           
-				subject = rs2.getString("subject");      
-			}
-			
-			if(mailmsgsql!=null && !mailmsgsql.equalsIgnoreCase("")){  
-				SqlRowSet rs3 = template.queryForRowSet(mailmsgsql);
-				while(rs3.next()){
-					mailmessage = rs3.getString("content");        
+			SimpleJdbcCall simplejdbc=new SimpleJdbcCall(template);
+	        simplejdbc.withProcedureName("an_taskcreationDML");
+	        simplejdbc.withCatalogName(dbName);
+	        Map<String,Object> inparams=new HashMap<String,Object>();
+	        inparams.put("vreftype", refType);
+	        inparams.put("vrefno",refNo);
+	        inparams.put("vdate", startDate);
+	        inparams.put("vtime", startTime);
+	        inparams.put("vassuser", hidUser);
+	        inparams.put("vdescript", desc);
+	        inparams.put("vedc", sqledcdate);
+	        inparams.put("vuser", userId);
+	        inparams.put("vtype","" );
+	        inparams.put("docNo", java.sql.Types.INTEGER);	        
+	        SqlParameterSource in=new MapSqlParameterSource(inparams);
+	        Map<String,Object> simplejdbcresult=simplejdbc.execute(in);
+	        System.out.println("String - "+simplejdbcresult.toString());
+	        if(simplejdbcresult.isEmpty()) {
+	        	throw new CommonException("Procedure Error");
+	        }
+	        val = (int) simplejdbcresult.get("docno");
+	        
+	        System.out.println("val  -  "+val);
+	        String sqlinsert = "UPDATE an_schedule SET lastdate = now() WHERE remarks = '"+desc+"'";
+	        System.out.println(sqlinsert);
+	        template.update(sqlinsert);
+	        
+	        
+	        if(!userId.equals(hidUser)) {
+	        	String host="";
+	        	String port="";
+	        	String userName="";
+	        	String password="";
+	        	String recipient="";
+	        	String subject="";
+	        	String mailmessage="";
+	        	String mobile="";
+	        	String whatsapptemplate="";
+	        	String accesstoken="";
+	        	String phoneId="";
+	        	String whatsappaccountid="";
+	        	String appid="";
+	        	String whatsappno="";
+	        	String path="";
+	        	String mediatype="";
+	        	String mediaformat="";
+	        	String apiurl="";
+	        	String cldocnos="";
+	        	String msg="";
+	        	String attachdoc="";
+	        	String extn="";
+	        	String msgtype="Template";
+	        	String cldocno="0";
+	        	String mob="";
+	        	String client="";
+	        	String rescode="";
+	        	String message="";
+	        	
+	        	File saveFile = null;
+	        	
+	        	String sqlstr = "SELECT mail, mailpass, smtpserver, smtphostport FROM my_user WHERE status=3 AND user_id='super'";	
+				System.out.println("Line 132 - "+sqlstr);
+	        	SqlRowSet rssqlstr = template.queryForRowSet(sqlstr);
+				while(rssqlstr.next()){
+					host = rssqlstr.getString("smtpserver");
+					port = rssqlstr.getString("smtphostport");
+					userName = rssqlstr.getString("mail");
+					password = clsEncrypt.decrypt(rssqlstr.getString("mailpass").trim());  
 				}  
-			}
-			
-			
-			
-			if(mailmessage!=null && !mailmessage.equalsIgnoreCase("") && !recipient.equalsIgnoreCase("")){
-				String successtatus = sendEmailPdf(host,  port, userName,  password,  recipient,  "" , subject,  mailmessage, "", "", saveFile);  
-			}
-			
-			if(whatsappconfig.trim().equalsIgnoreCase("1")) {
+	        	
+				String sqlstr1 = "SELECT email, mobile FROM my_user WHERE doc_no='"+hidUser+"'";	    
+				SqlRowSet rs1 = template.queryForRowSet(sqlstr1);
+				while(rs1.next()){
+					recipient = rs1.getString("email");    
+					mobile = rs1.getString("mobile");        
+				}
+				
+				String mailmsgsql="";
+				String sqlstr2 = "select msg, subject from gl_emailmsg where dtype='TMT' and description='Assigned'";	  
+				SqlRowSet rs2 = template.queryForRowSet(sqlstr2);
+				while(rs2.next()){
+					mailmsgsql = rs2.getString("msg").replaceAll("document", val+"");           
+					subject = rs2.getString("subject");      
+				}
+				
+				if(!mailmsgsql.equals("")){  
+					SqlRowSet rs3 = template.queryForRowSet(mailmsgsql);
+					while(rs3.next()){
+						mailmessage = rs3.getString("content");        
+					}  
+				}
+				
+				if(!mailmessage.equals("") && !recipient.equals("")){
+					String successtatus = sendEmailPdf(host,  port, userName,  password,  recipient,  "" , subject,  mailmessage, "", "", saveFile);  
+				}
+				
 				String whatsappmsgsql="";
 				String sqlstr4 = "select msg, template, t.mediaid templateid from gl_whatsappmsg g left join wa_template t on t.name=g.template where dtype='TMT' and description='Assigned'";  	  
 				System.out.println(sqlstr4);
@@ -160,7 +187,7 @@ public class TaskManagementService {
 				String edc = "";
 				String fromUser = "";
 				
-				if(!whatsappmsgsql.equalsIgnoreCase("")){  
+				if(!whatsappmsgsql.equals("")){  
 					SqlRowSet rs5 = template.queryForRowSet(whatsappmsgsql);  
 					while(rs5.next()){
 						toUser = rs5.getString("touser");
@@ -213,8 +240,6 @@ public class TaskManagementService {
 					}
 		        }
 		        
-		        
-		        
 		        String sql3 = "select apiurl from wa_apiurl where type='sendMultimediawithmsg'";         
 		        SqlRowSet rs7 = template.queryForRowSet(sql3);
 			 	while(rs7.next()) {
@@ -262,126 +287,11 @@ public class TaskManagementService {
 	                	 update = template.update(updatelog,cldocno,"1","WAM",userId,mob,mediaid,attachdoc.equals("")?"0":attachdoc,whatsappaccountid,phoneId,appid,msg,whatsappno,whatsapptemplate);
 	                 }
 	            }
-			}
-
-		
-    	}
-    	catch(Exception e) {
-    		e.printStackTrace();
-    		throw new CommonException(e.getMessage());
-    	}
-    	return update;
-    }
-    
-    
-    @Transactional
-    public boolean assignTask(String refType, String refNo, String startDate, String startTime, String assignuser, String desc, String entereduser, String edcDate,String docno,String taskstatus) {
-    	try {
-    		String strsql="";
-    		int val=0;
-    		int update=0;
-    		if(!(taskstatus.equalsIgnoreCase("Confirmed") || taskstatus.equalsIgnoreCase("Completed"))){                  
-    			strsql="update an_taskcreation set ass_user='"+assignuser+"',act_status='"+taskstatus+"' where doc_no='"+docno+"' and utype!='app'";
-    			val=template.update(strsql);
-    			if(val<0) {
-    				throw new CommonException("Task Update Error");
-    			}
-    		}else if(taskstatus.equalsIgnoreCase("Completed")){   
-    			strsql="update an_taskcreation set ass_user='"+entereduser+"',act_status='"+taskstatus+"' where doc_no='"+docno+"' and utype!='app'";	
-    			val=template.update(strsql);
-    			if(val<0) {
-    				throw new CommonException("Task Update Error");
-    			}
-    		}else{
-    			strsql="update an_taskcreation set act_status='"+taskstatus+"',close_status=1 where doc_no='"+docno+"' and utype!='app'";  
-    			val=template.update(strsql);
-    			if(val<0) {
-    				throw new CommonException("Task Update Error");
-    			}
-    		}
-    		
-    		if(val>0){    
-    			String flwsql="insert into an_taskcreationdets(rdocno,ass_date,userid,assnfrom_user,action_status,remarks) values('"+docno+"',now(),'"+assignuser+"','"+entereduser+"','"+taskstatus+"','"+desc+"')";
-    			val=template.update(flwsql);          
-    			if(val<=0) {
-    				throw new CommonException("Task Followup Insert Error");
-    			}
-    		}
-    		
-    		
-    		String userId=entereduser;
-    		String hidUser=assignuser;
-    		if(!userId.equalsIgnoreCase(hidUser) && whatsappconfig.trim().equalsIgnoreCase("1")) {
-    			int sendmail=sendMailAndWhatsapp(hidUser, userId, Integer.parseInt(docno));
-    			if(sendmail>0) {
-    				return true;
-    			}
-    			else {
-    				throw new CommonException("WhatsappMail Send Error");
-    			}
-    		}
-    		else {
-    			return true;
-    		}
-    		
-    	}
-    	catch(Exception e) {
-    		e.printStackTrace();
-    	}
-    	return false;
-    }
-    
-    @Transactional
-    public boolean addTask(String refType, String refNo, String startDate, String startTime, String hidUser, String desc, String userId, String edcDate) {
-    	int val = 0;
-    	int update = 0;
-		try
-		{
-			Date  sqledcdate = null;
-			if(!edcDate.equals("") && edcDate!=null){
-				sqledcdate = objcommon.changeStringtoSqlDate(edcDate);
-			}
-			
-			SimpleJdbcCall simplejdbc=new SimpleJdbcCall(template);
-	        simplejdbc.withProcedureName("an_taskcreationDML");
-	        simplejdbc.withCatalogName(dbName);
-	        Map<String,Object> inparams=new HashMap<String,Object>();
-	        inparams.put("vreftype", refType);
-	        inparams.put("vrefno",refNo);
-	        inparams.put("vdate", startDate);
-	        inparams.put("vtime", startTime);
-	        inparams.put("vassuser", hidUser);
-	        inparams.put("vdescript", desc);
-	        inparams.put("vedc", sqledcdate);
-	        inparams.put("vuser", userId);
-	        inparams.put("vtype","" );
-	        inparams.put("docNo", java.sql.Types.INTEGER);	        
-	        SqlParameterSource in=new MapSqlParameterSource(inparams);
-	        Map<String,Object> simplejdbcresult=simplejdbc.execute(in);
-	        System.out.println("String - "+simplejdbcresult.toString());
-	        if(simplejdbcresult.isEmpty()) {
-	        	throw new CommonException("Procedure Error");
+				
 	        }
-	        val = (int) simplejdbcresult.get("docno");
-	        update=val;
-	        System.out.println("val  -  "+val);
-	        String sqlinsert = "UPDATE an_schedule SET lastdate = now() WHERE remarks = '"+desc+"'";
-	        System.out.println(sqlinsert);
-	        template.update(sqlinsert);
-	        
-	        if(!userId.equalsIgnoreCase(hidUser) && whatsappconfig.trim().equalsIgnoreCase("1")) {
-    			int sendmail=sendMailAndWhatsapp(hidUser, userId, val);
-    			if(sendmail>0) {
-    				return true;
-    			}
-    			else {
-    				throw new CommonException("WhatsappMail Send Error");
-    			}
-    		}
-    		else {
-    			return true;
-    		}
-	        
+			 if(update>0) {
+				return true; 
+			 }
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -493,7 +403,7 @@ public class TaskManagementService {
 	public List<TaskManagementModel> pendingTask(String userid) {
 		try {
 		String sqltest=" and (t.userid='"+userid+"' or t.ass_user='"+userid+"')";
-		String strsql="select tt.doc_no reftypedocno,u1.user_name crtuser,u.user_name user,t.userid,ass_user,t.doc_no,tt.reftype ref_type,ref_no,strt_date,strt_time,description,act_status status,t.edcdate from an_taskcreation t "
+		String strsql="select u1.user_name crtuser,u.user_name user,t.userid,ass_user,t.doc_no,tt.reftype ref_type,ref_no,strt_date,strt_time,description,act_status status,t.edcdate from an_taskcreation t "
 				+ "left join an_taskcreationdets a on t.doc_no=a.rdocno left join my_user u on u.doc_no=t.ass_user left join my_user u1 on u1.doc_no=t.userid  left join an_tasktype tt on tt.doc_no=t.ref_type "
 				+ "where t.close_status=0 and t.utype!='app' "+sqltest+" group by doc_no"; 
 		System.out.println("pendingGrid--->>>"+strsql);
@@ -512,7 +422,6 @@ public class TaskManagementService {
                 objtemp.setDesc(rs.getString("description"));
                 objtemp.setStatus(rs.getString("status"));
                 objtemp.setEdcDate(rs.getString("edcdate"));
-                objtemp.setReftypedocno(rs.getString("reftypedocno"));
                 return objtemp;
             }
         });

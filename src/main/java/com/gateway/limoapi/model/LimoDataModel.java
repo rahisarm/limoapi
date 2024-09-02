@@ -22,7 +22,8 @@ public class LimoDataModel {
 	private String client;
 	private String guest;
 	private String clientdocno;
-	
+	private String jobstatus;
+	private String jobstatusid;
 	
 	public String getReg_no() {
 		return reg_no;
@@ -143,6 +144,18 @@ public class LimoDataModel {
 	}
 	public void setGuest(String guest) {
 		this.guest = guest;
+	}
+	public String getJobstatusid() {
+		return jobstatusid;
+	}
+	public void setJobstatusid(String jobstatusid) {
+		this.jobstatusid = jobstatusid;
+	}
+	public String getJobstatus() {
+		return jobstatus;
+	}
+	public void setJobstatus(String jobstatus) {
+		this.jobstatus = jobstatus;
 	}
 	
 }

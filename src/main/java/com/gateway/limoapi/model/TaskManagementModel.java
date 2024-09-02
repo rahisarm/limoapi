@@ -14,15 +14,7 @@ public class TaskManagementModel {
 	private String ass_user;
 	private String doc_no;
 	private String status;
-	private String reftypedocno;
 	
-	
-	public String getReftypedocno() {
-		return reftypedocno;
-	}
-	public void setReftypedocno(String reftypedocno) {
-		this.reftypedocno = reftypedocno;
-	}
 	public String getRefType() {
 		return refType;
 	}

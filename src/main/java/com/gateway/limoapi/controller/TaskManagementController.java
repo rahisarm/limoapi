@@ -26,10 +26,6 @@ public class TaskManagementController {
 	@Autowired
 	TaskManagementService taskManagementService;
 	
-	@PostMapping("/reAssignTask")
-	public boolean reAssignTask(@RequestParam Map<String,String> queryparams ) {
-		return taskManagementService.assignTask(queryparams.get("refType"), queryparams.get("refNo"), queryparams.get("startDate"), queryparams.get("startTime"), queryparams.get("hidUser"), queryparams.get("desc"), queryparams.get("userId"), queryparams.get("edcDate"),queryparams.get("docno"),queryparams.get("taskstatus"));
-	}
 	
 	@PostMapping("/addtask")
 	public boolean addTask(@RequestParam Map<String,String> queryparams ) {

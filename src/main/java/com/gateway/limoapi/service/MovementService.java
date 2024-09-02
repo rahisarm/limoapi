@@ -171,11 +171,11 @@ public class MovementService {
         });
     }
     
-    public List<LimoDataModel> getLimoMovExistData(String docno, String driverdocno) {
-        String strsql="select veh.fleet_no,veh.reg_no,plt.code_name,veh.flname,gvm.drvid drid,usr.user_name bookuser,bm.bstatus, CONCAT('GW-',b.code,DATE_FORMAT(lb.date,'%Y'),LPAD(bm.`docno`, 6, '0')) bookingno, round(bm.vendoramount,2) vendoramount,round(bm.vendordiscount,2) vendordiscount,round(bm.vendornetamount,2) vendornetamount,bm.assigntype,bm.refno,bm.triptype,bm.otherdetails,bm.pax,concat(coalesce(veh.reg_no,''),' - ',coalesce(plt.code_name,'')) regdetails,coalesce(bm.remarks,'') bookremarks,coalesce(bm.drivername,'') drivername,coalesce(bm.groupname,'') groupname,bm.tarifdocno,bm.tarifdetaildocno,if(date_format(now(),'%Y-%m-%d')=bm.pickupdate,1,0) datval,bm.rowno, coalesce(bm.docno,0) docno, coalesce(lb.voc_no,0) vocno, bm.brhid, bm.job, bm.client, bm.clientid, bm.guest, bm.guestid,"
+    public List<LimoDataModel> getLimoMovExistData(String docno, String driverdocno, String rjobtype) {
+        String strsql="select veh.fleet_no,veh.reg_no,plt.code_name,veh.flname,gvm.drvid drid,usr.user_name bookuser,gvm.bookingstatus,bm.bstatus, CONCAT('GW-',b.code,DATE_FORMAT(lb.date,'%Y'),LPAD(bm.`docno`, 6, '0')) bookingno, round(bm.vendoramount,2) vendoramount,round(bm.vendordiscount,2) vendordiscount,round(bm.vendornetamount,2) vendornetamount,bm.assigntype,bm.refno,bm.triptype,bm.otherdetails,bm.pax,concat(coalesce(veh.reg_no,''),' - ',coalesce(plt.code_name,'')) regdetails,coalesce(bm.remarks,'') bookremarks,coalesce(bm.drivername,'') drivername,coalesce(bm.groupname,'') groupname,bm.tarifdocno,bm.tarifdetaildocno,if(date_format(now(),'%Y-%m-%d')=bm.pickupdate,1,0) datval,bm.rowno, coalesce(bm.docno,0) docno, coalesce(lb.voc_no,0) vocno, bm.brhid, bm.job, bm.client, bm.clientid, bm.guest, bm.guestid,"
 	    		+ " bm.type, st.name status, bm.blockhrs, bm.pickupdate, bm.pickuptime,bm.plocation pickuplocation,bm.paddress pickupaddress,"
 	    		+ " bm.dlocation dropofflocation,bm.daddress dropoffaddress, bm.brand, bm.model, bm.fname, bm.fno, bm.nos, coalesce(bm.tdocno,0) tdocno, bm.remarks "
-	    		+ " from gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname AND gvm.drvid="+driverdocno+" LEFT JOIN my_salesman sm ON sm.doc_no=gvm.drvid AND sm.sal_type='DRV' left join gl_limostatusdet st on st.doc_no=bm.bstatus left join gl_vehmaster veh on (gvm.fleetno=veh.fleet_no and statu=3) left join gl_vehplate plt on veh.pltid=plt.doc_no left join my_user usr on bm.bookuserid=usr.doc_no where bm.confirm=0 and bm.docno="+docno;
+	    		+ " from gl_limomanagement bm INNER JOIN my_brch b ON bm.`brhid`=b.`BRANCH` INNER JOIN gl_limobookm lb ON lb.`doc_no`=bm.`docno` LEFT JOIN gl_multivehassign gvm ON bm.docno=gvm.bookingno AND bm.job=gvm.jobname AND gvm.drvid="+driverdocno+" LEFT JOIN my_salesman sm ON sm.doc_no=gvm.drvid AND sm.sal_type='DRV' left join gl_limostatusdet st on st.doc_no=bm.bstatus left join gl_vehmaster veh on (gvm.fleetno=veh.fleet_no and statu=3) left join gl_vehplate plt on veh.pltid=plt.doc_no left join my_user usr on bm.bookuserid=usr.doc_no where bm.confirm=0 and bm.job='"+rjobtype+"' and bm.docno="+docno;
         System.out.println("Limo Data: "+strsql);
         return template.query(strsql, new RowMapper<LimoDataModel>() {
             @Override
@@ -186,10 +186,11 @@ public class MovementService {
                 model.setFleet(rs.getString("fleet_no"));
                 model.setReg_no(rs.getString("reg_no"));
                 model.setCodename(rs.getString("code_name"));
-                model.setVehname(rs.getString("fname"));
+                model.setVehname(rs.getString("flname"));
                 model.setDriverid(rs.getString("drid"));
                 model.setClient(rs.getString("client"));
                 model.setGuest(rs.getString("guest"));
+                model.setJobstatusid(rs.getString("bookingstatus"));
                 return model;
             }
         });
